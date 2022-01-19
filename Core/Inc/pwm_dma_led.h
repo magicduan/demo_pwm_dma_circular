@@ -22,6 +22,8 @@ typedef enum {
     PWM_DMA_END
 }PWM_DMA_STATUS;
 
+typedef  struct _pwm_dma_data_struct PWM_DMA_DATA_STRUCT;
+
 typedef struct{
     uint32_t    b_completed;  // 0: "DMA send" not finished, 1:"DMA send" finished
     uint8_t*    p_buffer;
@@ -30,18 +32,19 @@ typedef struct{
     __attribute__((aligned(4))) volatile  DMA_TYPE pwm_buffer[DMA_BUFFER_LEN];
 }INTER_PWM_DMA_STRUCT;
 
-typedef struct {
+struct _pwm_dma_data_struct {
     TIM_HandleTypeDef*      htim;
     uint32_t                dma_channel;
     uint8_t                 *p_dma_colors;
     uint32_t                total_leds; 
+    void (*send_finishedCallback)(PWM_DMA_DATA_STRUCT *p_pwm_dma_data);
     INTER_PWM_DMA_STRUCT    inter_dma_data;
-}PWM_DMA_DATA_STRUCT;
+};
 
 #define PWM_LED_CHANNEL_MAX_COUNT  4 // The max count of DMA Channel which is used to control different LED IC. 
 
 void pwm_dma_init(uint32_t dma_id, TIM_HandleTypeDef *htim, uint32_t channel,
-                 uint8_t* p_colors, uint32_t leds_count );
+                 uint8_t* p_colors, uint32_t leds_count, void *p_callback );
 int pwm_dma_send(uint32_t dma_id,uint8_t b_block);
 
 void led_data_fill(PWM_DMA_DATA_STRUCT* p_dma_data,uint8_t b_half);

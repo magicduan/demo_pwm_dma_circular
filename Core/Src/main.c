@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "pwm_dma_led.h"
+#include "pwm_dma_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,6 +53,13 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
+/* Definitions for pwmLEDTask */
+osThreadId_t pwmLEDTaskHandle;
+const osThreadAttr_t pwmLEDTask_attributes = {
+  .name = "pwmLEDTask",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 128 * 4
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -63,6 +71,7 @@ static void MX_LPUART1_UART_Init(void);
 static void MX_DMA_Init(void);
 static void MX_TIM1_Init(void);
 void StartDefaultTask(void *argument);
+void pwmLedTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -70,7 +79,7 @@ void StartDefaultTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#define LED_NUM 21
+#define LED_NUM 168
 #define LED_COLORS_LEN LED_NUM*3
 uint8_t led_colors[LED_COLORS_LEN];
 
@@ -133,6 +142,9 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of pwmLEDTask */
+  pwmLEDTaskHandle = osThreadNew(pwmLedTask, NULL, &pwmLEDTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -397,24 +409,85 @@ void StartDefaultTask(void *argument)
   uint8_t color[5][3] = {{0xFF,0xFF,0xFF},{0xFF,0x00,0x00},{0x00,0xFF,0x00},{0x00,0x00,0xFF},{0x00,0x00,0x00}};
   uint8_t color_idx = 0;
   uint8_t* p_colors;
-  pwm_dma_init(0,&htim1,TIM_CHANNEL_3,led_colors,LED_NUM);
+  pwm_dma_init(0,&htim1,TIM_CHANNEL_3,led_colors,LED_NUM,NULL);
+//  pwm_led_effect_set(0,LED_EFFECT_BREATH,200,1,0x00FFEF);
+
+  pwm_led_effect_start(0);
   for(;;)
   {
+
     p_colors = led_colors;
-    for(int i =0; i < LED_NUM; i++){
+    for(int i =0; i < 2; i++){
         p_colors[0] = color[color_idx][0];
         p_colors[1] = color[color_idx][1];
         p_colors[2] = color[color_idx][2];
         p_colors += 3;
+        color_idx ++;
+        if (color_idx >= 5){
+          color_idx = 0;;
+        }
     }
-    color_idx ++;
-    if (color_idx >= 5){
-      color_idx = 0;;
+    for(int i = 2; i < LED_NUM; i++){
+        p_colors[0] = 0;
+        p_colors[1] = 0;
+        p_colors[2] = 0;      
+        p_colors += 3;
     }
-    pwm_dma_send(0,1);
-    osDelay(2000);
+    pwm_led_effect_set(0,LED_EFFECT_MARQUEE,200,1,0);
+    pwm_led_effect_start(0);
+    osDelay(60000);
+    pwm_led_effect_stop(0);
+    osDelay(500);
+
+    pwm_led_effect_set(0,LED_EFFECT_BREATH,200,1,0xFF0000);
+    pwm_led_effect_start(0);
+    osDelay(60000);
+    pwm_led_effect_stop(0);
+    osDelay(500);
+
+    pwm_led_effect_set(0,LED_EFFECT_WATER,200,1,0xFF0000);
+    pwm_led_effect_start(0);
+    osDelay(60000);
+    pwm_led_effect_stop(0);    
+    osDelay(500);    
+    
+    for (int j = 0; j <5; j++){
+      p_colors = led_colors;
+      for(int i =0; i < LED_NUM; i++){
+          p_colors[0] = color[color_idx][0];
+          p_colors[1] = color[color_idx][1];
+          p_colors[2] = color[color_idx][2];
+          p_colors += 3;
+      }
+      color_idx ++;
+      if (color_idx >= 5){
+        color_idx = 0;;
+      }
+      pwm_dma_send(0,1);
+      osDelay(2000);
+    }
+    osDelay(1);
   }
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_pwmLedTask */
+/**
+* @brief Function implementing the pwmLEDTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_pwmLedTask */
+void pwmLedTask(void *argument)
+{
+  /* USER CODE BEGIN pwmLedTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    pwm_led_run();
+    osDelay(1);
+  }
+  /* USER CODE END pwmLedTask */
 }
 
 /**
