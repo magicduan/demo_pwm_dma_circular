@@ -22,10 +22,16 @@ typedef enum {
     PWM_DMA_END
 }PWM_DMA_STATUS;
 
+#define PWM_DMA_OK  0 
+#define PWM_DMA_ERROR_INIT  0x01 //DMA not initialized
+#define PWM_DMA_ERROR_BUSY  0x02 //DMA is busy     
+#define PWM_DMA_ERROR_IDX   0x03 //DMA index is error    
+
+
 typedef  struct _pwm_dma_data_struct PWM_DMA_DATA_STRUCT;
 
 typedef struct{
-    uint32_t    b_completed;  // 0: "DMA send" not finished, 1:"DMA send" finished
+    uint32_t    b_busy;  // 0: "DMA is not working", 1:"DMA is busy"
     uint8_t*    p_buffer;
     uint32_t    status;
     uint32_t    cur_led;   

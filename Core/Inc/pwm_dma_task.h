@@ -7,8 +7,10 @@
 
 #define EFF_BREATH_STEPS  20
 #define EFF_BREATH_MIN    0x05
+#define TIMEOUT_TICKCOUNT 100  //About 100ms
 typedef enum {
     LED_EFFECT_NONE = 0, 
+    LED_EFFECT_ONCE,
     LED_EFFECT_MARQUEE, 
     LED_EFFECT_BREATH,
     LED_EFFECT_WATER
@@ -40,8 +42,8 @@ typedef struct {
 
 void pwm_led_run();
 void pwm_led_effect_start(uint32_t dma_id);
-void pwm_led_effect_stop(uint32_t dma_id);
-void pwm_led_effect_set(uint32_t dma_id,uint8_t effection, uint32_t eff_interval,uint8_t grp_leds, uint32_t led_color );
+int pwm_led_effect_stop(uint32_t dma_id,uint8_t b_block,uint32_t timeout);
+int pwm_led_effect_set(uint32_t dma_id,uint8_t effection, uint32_t eff_interval,uint8_t grp_leds, uint32_t led_color );
 
 extern PWM_DMA_DATA_STRUCT pwm_dma_data[PWM_LED_CHANNEL_MAX_COUNT];  
 #ifdef __cplusplus

@@ -1,0 +1,11 @@
+pwm_dma_task.c:10:6:dma_finishedCallback	24	static
+pwm_dma_task.c:18:5:color_direct_change	32	static
+pwm_dma_task.c:49:6:update_effect_breath	32	static
+pwm_dma_task.c:86:6:update_effect_marquee	32	static
+pwm_dma_task.c:130:6:update_effect_water	32	static
+pwm_dma_task.c:178:6:update_led_colors	16	static
+pwm_dma_task.c:214:5:pwm_led_effect_set	40	static
+pwm_dma_task.c:266:6:pwm_led_effect_start	16	static
+pwm_dma_task.c:271:5:pwm_led_effect_stop	32	static
+pwm_dma_task.c:288:6:pwm_led_effect_run	24	static
+pwm_dma_task.c:319:6:pwm_led_run	16	static

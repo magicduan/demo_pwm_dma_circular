@@ -140,7 +140,7 @@ void led_data_fill(PWM_DMA_DATA_STRUCT* p_dma_data,uint8_t b_half)
         // All DMA send Finished
 	    HAL_TIM_PWM_Stop_DMA(p_dma_data->htim,
                              p_dma_data->dma_channel);
-        p_dma_data->inter_dma_data.b_completed = 1;
+        p_dma_data->inter_dma_data.b_busy = 0;
         if (p_dma_data->send_finishedCallback != NULL){
             p_dma_data->send_finishedCallback(p_dma_data);
         }
@@ -171,7 +171,7 @@ void pwm_dma_init(uint32_t dma_id, TIM_HandleTypeDef *htim, uint32_t channel,
     pwm_dma_data[dma_id].p_dma_colors = p_colors;    
     pwm_dma_data[dma_id].total_leds = leds_count;
     pwm_dma_data[dma_id].send_finishedCallback = p_callback;
-    pwm_dma_data[dma_id].inter_dma_data.b_completed = 1;
+    pwm_dma_data[dma_id].inter_dma_data.b_busy = 0;
 }                 
 
 /**
@@ -186,18 +186,18 @@ void pwm_dma_init(uint32_t dma_id, TIM_HandleTypeDef *htim, uint32_t channel,
 */
 int pwm_dma_send(uint32_t dma_id,uint8_t b_block)
 {
-    int res = 0;
+    int res = PWM_DMA_OK;
     if (dma_id >= PWM_LED_CHANNEL_MAX_COUNT){
-        return -1;
+        return PWM_DMA_ERROR_IDX;
     }
 
     if(pwm_dma_data[dma_id].htim == NULL){
-        return -1;
+        return PWM_DMA_ERROR_INIT;
     }
 
     pwm_dma_data[dma_id].inter_dma_data.status = PWM_DMA_HEAD_RST;
     pwm_dma_data[dma_id].inter_dma_data.cur_led = 0;
-    pwm_dma_data[dma_id].inter_dma_data.b_completed = 0;
+    pwm_dma_data[dma_id].inter_dma_data.b_busy = 1;
 
     led_data_fill(pwm_dma_data+dma_id,0);
     res = HAL_TIM_PWM_Start_DMA(pwm_dma_data[dma_id].htim,
@@ -209,7 +209,7 @@ int pwm_dma_send(uint32_t dma_id,uint8_t b_block)
     }
 
     if (b_block){ // Block Mode
-        while(pwm_dma_data[dma_id].inter_dma_data.b_completed == 0){
+        while(pwm_dma_data[dma_id].inter_dma_data.b_busy == 1){
             osDelay(1);
         }
     }

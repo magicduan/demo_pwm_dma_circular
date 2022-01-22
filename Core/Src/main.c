@@ -22,6 +22,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdlib.h>
+
 #include "pwm_dma_led.h"
 #include "pwm_dma_task.h"
 /* USER CODE END Includes */
@@ -79,7 +81,7 @@ void pwmLedTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#define LED_NUM 168
+#define LED_NUM 21
 #define LED_COLORS_LEN LED_NUM*3
 uint8_t led_colors[LED_COLORS_LEN];
 
@@ -389,10 +391,76 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
 
+void led_effect_change()
+{
+  
+  uint8_t color[5][3] = {{0xFF,0xFF,0xFF},{0xFF,0x00,0x00},{0x00,0xFF,0x00},{0x00,0x00,0xFF},{0x00,0x00,0x00}};
+  int effect_idx;
+  int i,color_idx;
+  uint8_t *p_colors = led_colors;
+  srand(osKernelGetTickCount());
+  effect_idx = rand() % 4 + 1;
+  color_idx = rand() % 5;
+  pwm_led_effect_stop(0,1,100);  
+  switch(effect_idx){
+    case LED_EFFECT_ONCE:
+          for(int i =0; i < LED_NUM; i++){
+            p_colors[0] = color[color_idx][0];
+            p_colors[1] = color[color_idx][1];
+            p_colors[2] = color[color_idx][2];
+            p_colors += 3;
+          }
+          pwm_led_effect_set(0,LED_EFFECT_ONCE,0,0,0);
+          pwm_led_effect_start(0);  
+          break;
+    case LED_EFFECT_MARQUEE:
+        p_colors = led_colors;
+        for( i =0; i < 2; i++){
+            p_colors[0] = color[color_idx][0];
+            p_colors[1] = color[color_idx][1];
+            p_colors[2] = color[color_idx][2];
+            p_colors += 3;
+            color_idx ++;
+            if (color_idx >= 5){
+              color_idx = 0;;
+            }
+        }
+        for( i = 2; i < LED_NUM; i++){
+            p_colors[0] = 0;
+            p_colors[1] = 0;
+            p_colors[2] = 0;      
+            p_colors += 3;
+        }
+        pwm_led_effect_set(0,LED_EFFECT_MARQUEE,200,1,0);
+        pwm_led_effect_start(0);
+        break;
+    case LED_EFFECT_BREATH:
+        pwm_led_effect_set(0,LED_EFFECT_BREATH,200,1,0xFF0000);
+        pwm_led_effect_start(0);
+        break;
+    case LED_EFFECT_WATER:
+        pwm_led_effect_set(0,LED_EFFECT_WATER,200,1,0xFF0000);
+        pwm_led_effect_start(0);
+        break;
+    default:
+        break;
+  }
+
+}
+uint8_t button_pressed = 0;
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+  if(GPIO_Pin == B1_Pin){
+      button_pressed = 1;
+  }
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -406,65 +474,14 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-  uint8_t color[5][3] = {{0xFF,0xFF,0xFF},{0xFF,0x00,0x00},{0x00,0xFF,0x00},{0x00,0x00,0xFF},{0x00,0x00,0x00}};
-  uint8_t color_idx = 0;
-  uint8_t* p_colors;
   pwm_dma_init(0,&htim1,TIM_CHANNEL_3,led_colors,LED_NUM,NULL);
-//  pwm_led_effect_set(0,LED_EFFECT_BREATH,200,1,0x00FFEF);
 
-  pwm_led_effect_start(0);
   for(;;)
   {
-
-    p_colors = led_colors;
-    for(int i =0; i < 2; i++){
-        p_colors[0] = color[color_idx][0];
-        p_colors[1] = color[color_idx][1];
-        p_colors[2] = color[color_idx][2];
-        p_colors += 3;
-        color_idx ++;
-        if (color_idx >= 5){
-          color_idx = 0;;
-        }
-    }
-    for(int i = 2; i < LED_NUM; i++){
-        p_colors[0] = 0;
-        p_colors[1] = 0;
-        p_colors[2] = 0;      
-        p_colors += 3;
-    }
-    pwm_led_effect_set(0,LED_EFFECT_MARQUEE,200,1,0);
-    pwm_led_effect_start(0);
-    osDelay(60000);
-    pwm_led_effect_stop(0);
-    osDelay(500);
-
-    pwm_led_effect_set(0,LED_EFFECT_BREATH,200,1,0xFF0000);
-    pwm_led_effect_start(0);
-    osDelay(60000);
-    pwm_led_effect_stop(0);
-    osDelay(500);
-
-    pwm_led_effect_set(0,LED_EFFECT_WATER,200,1,0xFF0000);
-    pwm_led_effect_start(0);
-    osDelay(60000);
-    pwm_led_effect_stop(0);    
-    osDelay(500);    
-    
-    for (int j = 0; j <5; j++){
-      p_colors = led_colors;
-      for(int i =0; i < LED_NUM; i++){
-          p_colors[0] = color[color_idx][0];
-          p_colors[1] = color[color_idx][1];
-          p_colors[2] = color[color_idx][2];
-          p_colors += 3;
-      }
-      color_idx ++;
-      if (color_idx >= 5){
-        color_idx = 0;;
-      }
-      pwm_dma_send(0,1);
-      osDelay(2000);
+//    led_effect_change();
+    if (button_pressed){
+      button_pressed = 0;
+      led_effect_change();
     }
     osDelay(1);
   }

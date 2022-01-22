@@ -178,6 +178,9 @@ void update_effect_water(uint32_t dma_id)
 void update_led_colors(uint32_t dma_id)
 {
     switch(pwm_led_effects[dma_id].effection){
+        case LED_EFFECT_ONCE:
+            pwm_led_effects[dma_id].eff_inter_data.data_ready = 1;
+            break;        
         case LED_EFFECT_BREATH:
             update_effect_breath(dma_id);
             pwm_led_effects[dma_id].eff_inter_data.data_ready = 1;
@@ -206,10 +209,13 @@ void update_led_colors(uint32_t dma_id)
 * @param eff_interval: interval time  
 * @param grp_leds: the number of each groups LEDs for LED_EFFECT_BREATH and LED_EFFECT_WATER
 * @param led_color: the led color for LED_EFFECT_BREATH and LED_EFFECT_WATER
-* @retval None
+* @retval 0: Success; 
 */
-void pwm_led_effect_set(uint32_t dma_id,uint8_t effection, uint32_t eff_interval,uint8_t grp_leds, uint32_t led_color )
+int pwm_led_effect_set(uint32_t dma_id,uint8_t effection, uint32_t eff_interval,uint8_t grp_leds, uint32_t led_color )
 {
+    if (pwm_dma_data[dma_id].htim == NULL){
+        return PWM_DMA_ERROR_INIT;
+    }
     pwm_led_effects[dma_id].effection = effection;
     pwm_led_effects[dma_id].interval = eff_interval;
     pwm_led_effects[dma_id].grp_led_count = grp_leds;
@@ -253,6 +259,8 @@ void pwm_led_effect_set(uint32_t dma_id,uint8_t effection, uint32_t eff_interval
                 break;               
         }
     }
+
+    return PWM_DMA_OK;
 }
 
 void pwm_led_effect_start(uint32_t dma_id)
@@ -260,9 +268,21 @@ void pwm_led_effect_start(uint32_t dma_id)
     pwm_led_effects[dma_id].status = EFF_STAT_START;
 }
 
-void pwm_led_effect_stop(uint32_t dma_id)
+int pwm_led_effect_stop(uint32_t dma_id,uint8_t b_block,uint32_t timeout)
 {
     pwm_led_effects[dma_id].status = EFF_STAT_STOP;
+    if (b_block){
+        int count = 0;
+        while(pwm_dma_data[dma_id].inter_dma_data.b_busy && count < timeout){
+            count++;
+            osDelay(1);
+        }
+        if (count >= timeout){
+            return PWM_DMA_ERROR_BUSY;
+        }
+    }
+
+    return PWM_DMA_OK;
 }
 
 void pwm_led_effect_run(uint32_t dma_id)
@@ -271,7 +291,7 @@ void pwm_led_effect_run(uint32_t dma_id)
         pwm_dma_data[dma_id].htim == NULL ||
         pwm_led_effects[dma_id].status == EFF_STAT_INIT ||
         pwm_led_effects[dma_id].status == EFF_STAT_STOP ||        
-        pwm_dma_data[dma_id].inter_dma_data.b_completed == 0){
+        pwm_dma_data[dma_id].inter_dma_data.b_busy == 1){
             return; 
     }
 
@@ -282,7 +302,12 @@ void pwm_led_effect_run(uint32_t dma_id)
     uint32_t diff_tickCount = osKernelGetTickCount() - pwm_led_effects[dma_id].eff_inter_data.last_tickcount;
     if (pwm_led_effects[dma_id].eff_inter_data.last_tickcount == 0 ||
         diff_tickCount >= pwm_led_effects[dma_id].interval){
-            pwm_dma_send(dma_id,0);
+            if (pwm_dma_send(dma_id,0) != 0){
+                return;
+            };
+            if (pwm_led_effects[dma_id].effection == LED_EFFECT_ONCE){
+                pwm_led_effects[dma_id].status = EFF_STAT_STOP;
+            }
     }
 }
 
