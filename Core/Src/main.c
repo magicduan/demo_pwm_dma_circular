@@ -81,7 +81,7 @@ void pwmLedTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#define LED_NUM 21
+#define LED_NUM 30
 #define LED_COLORS_LEN LED_NUM*3
 uint8_t led_colors[LED_COLORS_LEN];
 

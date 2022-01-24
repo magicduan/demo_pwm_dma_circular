@@ -8,11 +8,13 @@
 #define DUTY_0  1 // 1/5  // 26% of 75  WS2812 = 32%
 #define DUTY_1  3 // 3/5  // 75% of 75  WS2812 = 62%
 #define DUTY_RESET 0
+#define DUTY_HIGHT 5 // 100% 5/5
 
-#define TRST_LEN 48 // 48*1.25 = 60us Two LED Color Bit(2x24)
-#define DMA_BUFFER_LED_NUM 2  //Use 2 LED for DMA double in circular mode
-#define DMA_BUFFER_HALF_LEN 24 // the length of half buffer
-#define DMA_BUFFER_LEN  DMA_BUFFER_LED_NUM*24
+#define TRST_BYTE_LEN      8               //8*8 = 64 bit * 1.25 = 80us 
+//#define TRST_LEN            TRST_BYTE_LEN*8 // 64*1.25 = 80us Two LED Color Bit(2x24)
+#define DMA_BUFFER_LED_NUM 8  //Use 2 LED for DMA double in circular mode
+#define DMA_BUFFER_HALF_LEN DMA_BUFFER_LED_NUM*12 // the length of half buffer
+#define DMA_BUFFER_LEN  DMA_BUFFER_HALF_LEN*2
 
 #define DMA_TYPE  uint8_t //Use Half mode for DMA Memory data
 typedef enum {
@@ -33,8 +35,7 @@ typedef  struct _pwm_dma_data_struct PWM_DMA_DATA_STRUCT;
 typedef struct{
     uint32_t    b_busy;  // 0: "DMA is not working", 1:"DMA is busy"
     uint8_t*    p_buffer;
-    uint32_t    status;
-    uint32_t    cur_led;   
+    int32_t     cur_pos;   
     __attribute__((aligned(4))) volatile  DMA_TYPE pwm_buffer[DMA_BUFFER_LEN];
 }INTER_PWM_DMA_STRUCT;
 
